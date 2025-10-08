@@ -231,7 +231,7 @@ async function renderNode(
           const innerMathML = serialize(node)
           const imageData = await mathRenderer(innerMathML);
           // const imageData = await renderMathMLToImage(innerMathML);
-          return (<PDFImage src={imageData.base64} style={{ width: imageData.width, height: imageData.height }} />)
+          // return (<PDFImage src={imageData.base64} style={{ width: imageData.width, height: imageData.height }} />)
           return <Text>Parp</Text>
 
         } catch (e) {
