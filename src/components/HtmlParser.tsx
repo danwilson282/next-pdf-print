@@ -43,6 +43,11 @@ async function renderNode(
   keyPrefix = "",
   registerSection: registerSectionType,
   useServer: boolean,
+  mathRenderer: (mathml: string)=> Promise<{
+    base64: string | Blob;
+    width: number;
+    height: number;
+}>
 ): Promise<React.ReactNode | null> {
   if (!node) return null;
 
@@ -57,7 +62,7 @@ async function renderNode(
 
     const childNodes = await Promise.all(
       (node.children || []).map((c: any, i: number) =>
-        renderNode(c, `${keyPrefix}_${tag}_${i}`, registerSection,useServer)
+        renderNode(c, `${keyPrefix}_${tag}_${i}`, registerSection,useServer,mathRenderer)
       )
     );
     const children = childNodes.filter(Boolean);
@@ -130,14 +135,20 @@ async function renderNode(
           (node.children || []).filter((c: any) => c.name === "li").map(async (li: any, idx: number) => {
             const liChildren = await Promise.all(
               (li.children || []).map((c: any, i: number) =>
-                renderNode(c, `${keyPrefix}_li_${idx}_${i}`, registerSection,useServer)
+                renderNode(c, `${keyPrefix}_li_${idx}_${i}`, registerSection,useServer,mathRenderer)
               )
             );
             const bullet = isOrdered ? `${idx + 1}. ` : "• ";
             return (
               <View key={`${keyPrefix}_li_${idx}`} style={nodeStyles.listItem}>
                 <Text style={nodeStyles.listBullet}>{bullet}</Text>
-                <View style={{ flex: 1 }}>{liChildren.filter(Boolean)}</View>
+                <View style={{ flex: 1 }}>
+                  {liChildren
+                    .filter(Boolean)
+                    .map((child, idx) => (
+                      <React.Fragment key={`${keyPrefix}_li_child_${idx}`}>{child}</React.Fragment>
+                    ))}
+                </View>
               </View>
             );
           })
@@ -184,7 +195,7 @@ async function renderNode(
                       cells.map(async (cell: any, cIdx: number) => {
                         const cellChildren = await Promise.all(
                           (cell.children || []).map((c: any, i: number) =>
-                            renderNode(c, `${keyPrefix}_tr${rIdx}_c${cIdx}_${i}`, registerSection, useServer)
+                            renderNode(c, `${keyPrefix}_tr${rIdx}_c${cIdx}_${i}`, registerSection, useServer,mathRenderer)
                           )
                         );
                         const isHeader = cell.name === "th";
@@ -197,7 +208,11 @@ async function renderNode(
                               width: colWidth,
                             }}
                           >
-                            {cellChildren.filter(Boolean)}
+                            {cellChildren
+                              .filter(Boolean)
+                              .map((child, idx) => (
+                                <React.Fragment key={`${keyPrefix}_child_${idx}`}>{child}</React.Fragment>
+                              ))}
                           </View>
                         );
                       })
@@ -214,9 +229,10 @@ async function renderNode(
         try {
           
           const innerMathML = serialize(node)
-          const imageData = await renderMathMLToImage(innerMathML);
+          const imageData = await mathRenderer(innerMathML);
+          // const imageData = await renderMathMLToImage(innerMathML);
           return (<PDFImage src={imageData.base64} style={{ width: imageData.width, height: imageData.height }} />)
-          // return <Text>Parp</Text>
+          return <Text>Parp</Text>
 
         } catch (e) {
           console.error("MathML render error", e);
@@ -252,11 +268,18 @@ async function renderNode(
 export async function renderHtmlToPdfNodes(
   html: string,
   registerSection: registerSectionType,
-  useServer = false
+  useServer: boolean = false,
+  mathRenderer: (mathml: string)=> Promise<{
+    base64: string | Blob;
+    width: number;
+    height: number;
+}>
 ): Promise<React.ReactNode[]> {
   const doc = parseDocument(html, { decodeEntities: true });
   const nodes = await Promise.all(
-    (doc.children || []).map((n: any, i: number) => renderNode(n, `root_${i}`, registerSection, useServer))
+    (doc.children || []).map((n: any, i: number) => renderNode(n, `root_${i}`, registerSection, useServer,mathRenderer))
   );
-  return nodes.filter(Boolean) as React.ReactNode[];
+  return nodes
+  .filter(Boolean)
+  .map((node, idx) => <React.Fragment key={`node_${idx}`}>{node}</React.Fragment>);
 }

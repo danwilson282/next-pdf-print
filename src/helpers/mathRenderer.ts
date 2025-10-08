@@ -13,13 +13,18 @@ export async function renderMathMLToImage(mathml: string): Promise<{
         height: 100,
       }
     } else {
-      const { renderMathMLClient } = await import('./mathjaxToSvgClient');
-      const svg = await renderMathMLClient(mathml);
       return {
-        base64: svg, // You can base64 it if needed
+        base64: "",
         width: 100,
         height: 100,
-      };
+      }
+      // const { renderMathMLClient } = await import('./mathjaxToSvgClient');
+      // const svg = await renderMathMLClient(mathml);
+      // return {
+      //   base64: svg, // You can base64 it if needed
+      //   width: 100,
+      //   height: 100,
+      // };
     }
   }
   

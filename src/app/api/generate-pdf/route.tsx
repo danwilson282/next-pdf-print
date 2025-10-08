@@ -3,7 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import FormattedDocument from "@/components/FormattedDocument";
 import { renderHtmlToPdfNodes } from "@/components/HtmlParser";
 import { tocType } from "@/components/RenderPdf";
-
+import { renderMathMLToImage } from "@/helpers/mathRenderer";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const processedSections = await Promise.all(
     sections.map(async (section: any) => ({
       title: section.title,
-      content: await renderHtmlToPdfNodes(section.content, registerSection, true)
+      content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLToImage)
     }))
   );
 
