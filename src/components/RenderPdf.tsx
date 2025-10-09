@@ -1,15 +1,24 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { BlobProvider } from "@react-pdf/renderer";
-import FormattedDocument from "../components/FormattedDocument";
-import { renderHtmlToPdfNodes } from "../components/HtmlParser";
-import { FrontCoverProps } from "../components/Cover";
-import { renderMathMLClient } from "@/helpers/mathjaxToSvgClient";
-export type sectionType = { title: string; content: string | React.ReactNode };
-export type registerSectionType = (title: string, pageNumber: number, id: number, type: string) => void;
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import FormattedDocument from '../components/FormattedDocument';
+import { renderHtmlToPdfNodes } from '../components/HtmlParser';
+import { renderMathMLClient } from '@/helpers/mathjaxToSvgClient';
+import { FrontCoverProps } from '../components/Cover';
+
+export type sectionType = { title: string; content: React.ReactNode };
+export type registerSectionType = (
+  title: string,
+  pageNumber: number,
+  id: number,
+  type: string
+) => void;
+
 export type tocEntry = { id: number; title: string; pageNumber: number; type: string };
 export type tocType = tocEntry[];
+
+export type Section = { title: string; content: string };
 
 type DublinCoreMeta = {
   title?: string;
@@ -44,11 +53,6 @@ export type DocumentMeta = {
   showContentsPage?: boolean;
 };
 
-export type Section = {
-  title: string;
-  content: string;
-};
-
 type Props = {
   meta: DocumentMeta;
   sections: Section[];
@@ -56,17 +60,16 @@ type Props = {
 };
 
 const RenderPdf: React.FC<Props> = ({ meta, sections, setBlob }) => {
-  const [url, setUrl] = useState<string | null>(null);
-  const [blob, setLocalBlob] = useState<Blob | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [processedSections, setProcessedSections] = useState<sectionType[]>([]);
   const [tocMap, setTocMap] = useState<tocType>([]);
   const tempMap = useRef<tocType>([]);
-  const [ready, setReady] = useState(false);
+  const [pass, setPass] = useState<1 | 2>(1);
+  const [isReady, setIsReady] = useState(false);
 
+  // Collect ToC entries during render
   const registerSection: registerSectionType = useCallback(
     (title, pageNumber, id, type) => {
-      if (!ready) {
+      if (pass === 1) {
         const existingIndex = tempMap.current.findIndex((entry) => entry.id === id);
         const newEntry = { id, title, pageNumber, type };
 
@@ -76,72 +79,76 @@ const RenderPdf: React.FC<Props> = ({ meta, sections, setBlob }) => {
           tempMap.current.push(newEntry);
         }
 
-        const sortedToc = [...tempMap.current].sort((a, b) => a.id - b.id);
-        setTocMap(sortedToc);
+        const sorted = [...tempMap.current].sort((a, b) => a.id - b.id);
+        setTocMap(sorted);
       }
     },
-    [ready]
+    [pass]
   );
 
-  const [processedSections, setProcessedSections] = useState<sectionType[]>([]);
-
+  // Initial pass: process content sections into renderable nodes
   useEffect(() => {
-    const processSections = async () => {
-      const resolvedSections = await Promise.all(
+    const process = async () => {
+      const results = await Promise.all(
         sections.map(async (section) => ({
           title: section.title,
-          content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLClient),
+          content: await renderHtmlToPdfNodes(
+            section.content,
+            registerSection,
+            true,
+            renderMathMLClient
+          ),
         }))
       );
-      setProcessedSections(resolvedSections);
+      setProcessedSections(results);
     };
 
-    processSections();
-  }, [registerSection, sections]);
+    process();
+  }, [sections, registerSection]);
 
-  const memoizedDocument = useMemo(
-    () => (
-      <FormattedDocument
-        frontCover={meta.cover}
-        sections={processedSections}
-        tocMap={tocMap}
-        registerSection={registerSection}
-        headerText={meta.pageTemplate?.headerText}
-        footerText={meta.pageTemplate?.footerText}
-      />
-    ),
-    [meta, processedSections, tocMap, registerSection]
-  );
-
-  // ✅ React after blob or url changes
+  // Detect when pass 1 is done → switch to pass 2
   useEffect(() => {
-    if (blob && url) {
-      setBlob?.(blob);
-      setReady(true);
+    if (pass === 1 && tocMap.length > 0 && processedSections.length > 0) {
+      setPass(2);
+      setIsReady(true);
     }
-  }, [blob, url, setBlob]);
+  }, [tocMap, processedSections, pass]);
+
+  // Final document to render (second pass only)
+const memoizedDocument = useMemo(() => {
+  return (
+    <FormattedDocument
+      frontCover={meta.cover}
+      sections={processedSections}
+      tocMap={pass === 2 ? tocMap : []} // ToC is blank in pass 1
+      registerSection={registerSection}
+      headerText={meta.pageTemplate?.headerText}
+      footerText={meta.pageTemplate?.footerText}
+    />
+  );
+}, [meta, processedSections, tocMap, registerSection, pass]);
+
+  // Generate and open PDF
+  const openPDFInNewTab = async () => {
+    if (!isReady || !memoizedDocument) {
+      alert('Please wait, generating Table of Contents...');
+      return;
+    }
+
+    const finalBlob = await pdf(memoizedDocument).toBlob();
+    const url = URL.createObjectURL(finalBlob);
+    window.open(url, '_blank');
+
+    if (setBlob) setBlob(finalBlob);
+  };
 
   return (
-    <BlobProvider document={memoizedDocument}>
-      {({ blob: b, url: u, loading: l, error: e }) => {
-        // ✅ Only update local state if changed
-        useEffect(() => {
-          setLocalBlob(b || null);
-          setUrl(u || null);
-          setLoading(l);
-          setError(e || null);
-        }, [b, u, l, e]);
+    <>    
+    {JSON.stringify(tocMap)}
+    <button onClick={openPDFInNewTab} disabled={!isReady}>
+      {isReady ? 'Open Generated PDF' : 'Preparing document...'}
+    </button></>
 
-        if (l) return <span>Generating PDF...</span>;
-        if (e) return <span>Error: {e.message}</span>;
-
-        return u ? (
-          <a href={u} target="_blank" rel="noopener noreferrer">
-            Download PDF
-          </a>
-        ) : null;
-      }}
-    </BlobProvider>
   );
 };
 

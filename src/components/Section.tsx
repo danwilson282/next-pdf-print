@@ -32,6 +32,7 @@ const Section: React.FC<Props> = ({ title, content, registerSection, headerText,
         <View style={globalStyles.headingContainer}>
           <Text
             render={({ pageNumber }) => {
+              console.log('Registering section:', title, pageNumber);
               registerSection(title, pageNumber, id, `${pageNumber}_${id}_a`);
               return `${title}`;
             }}

@@ -79,7 +79,7 @@ async function svgStringToPng(svgString: string): Promise<{
       URL.revokeObjectURL(url);
 
       canvas.toBlob((blob) => {
-        if (blob) resolve({ blob, width, height });
+        if (blob) resolve({ blob, width: width*0.6, height: height*0.6 });
         else reject("Failed to create PNG blob");
       }, "image/png", 1.0);
     };
