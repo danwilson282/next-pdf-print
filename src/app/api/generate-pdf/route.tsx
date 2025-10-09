@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import FormattedDocument from "@/components/FormattedDocument";
 import { renderHtmlToPdfNodes } from "@/components/HtmlParser";
-import { tocType } from "@/components/RenderPdf";
-import { renderMathMLToImage } from "@/helpers/mathRenderer";
+import { DocumentMeta, tocType } from "@/components/RenderPdf";
+import { SectionType } from "@/helpers/parseHtmlToSections";
+import { SectionInputType } from "@/app/server/page";
+import { renderMathMLServer } from "@/helpers/mathjaxToSvgServer";
+type BodyType = {
+  meta: DocumentMeta;
+  sections: SectionInputType[];
+};
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body: BodyType = await req.json();
 
   const { meta, sections } = body;
 
@@ -32,12 +38,14 @@ export async function POST(req: NextRequest) {
         tocMap.push({ id, title, pageNumber, type });
   };
 
-  const processedSections = await Promise.all(
-    sections.map(async (section: any) => ({
+const processedSections = await Promise.all(
+  sections.map(async (section: SectionInputType): Promise<SectionType> => (
+    {
       title: section.title,
-      content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLToImage)
-    }))
-  );
+      content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLServer)
+    }
+  ))
+);
 
   const pdfDocPass1 = (
     <FormattedDocument
@@ -64,7 +72,7 @@ export async function POST(req: NextRequest) {
     />
   );
   const pdfBuffer = await renderToBuffer(pdfDocPass2);
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": "inline; filename=document.pdf"

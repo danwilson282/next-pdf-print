@@ -14,6 +14,11 @@ import ServePdf from "@/components/ServePdf";
 import * as fs from 'fs'
 import path from "path";
 
+export type SectionInputType = {
+  title: string;
+  content: string;
+}
+
 const convertImageUrlToBase64 = async (imageUrl: string): Promise<string> => {
   const response = await fetch(imageUrl);
   const blob = await response.blob();
@@ -55,7 +60,7 @@ const documentMetadata: DocumentMeta = {
 
   }
 
-  const sections = [
+  const sections: SectionInputType[] = [
     { title: "Introduction", content: intro },
     { title: "Specification at a glance", content: specAtAGlance },
     // { title: "Subject content", content: subjectContent },
