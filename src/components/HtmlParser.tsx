@@ -232,7 +232,7 @@ async function renderNode(
           const imageData = await mathRenderer(innerMathML);
           // const imageData = await renderMathMLToImage(innerMathML);
           // return (<PDFImage src={imageData.base64} style={{ width: imageData.width, height: imageData.height }} />)
-          return <Text>Parp</Text>
+          return <Text>Placeholder</Text>
 
         } catch (e) {
           console.error("MathML render error", e);
