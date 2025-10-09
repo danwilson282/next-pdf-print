@@ -25,14 +25,6 @@ const Section: React.FC<Props> = ({ title, content, registerSection, headerText,
         }
         fixed
       />
-      {/* <Text
-        style={{textAlign: 'right', fontWeight: 600}}
-        render={({ pageNumber, totalPages }) =>
-          // `Page ${pageNumber} of ${totalPages}`
-        `${pageNumber}`
-        }
-        fixed
-      /> */}
     </View>
     <View style={globalStyles.headerHr} fixed/>
     <View>

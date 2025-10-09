@@ -3,7 +3,6 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import FormattedDocument from "@/components/FormattedDocument";
 import { renderHtmlToPdfNodes } from "@/components/HtmlParser";
 import { DocumentMeta, tocType } from "@/components/RenderPdf";
-import { renderMathMLToImage } from "@/helpers/mathRenderer";
 import { SectionType } from "@/helpers/parseHtmlToSections";
 import { SectionInputType } from "@/app/server/page";
 import { renderMathMLServer } from "@/helpers/mathjaxToSvgServer";

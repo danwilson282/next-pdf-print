@@ -5,7 +5,7 @@ import { BlobProvider } from "@react-pdf/renderer";
 import FormattedDocument from "../components/FormattedDocument";
 import { renderHtmlToPdfNodes } from "../components/HtmlParser";
 import { FrontCoverProps } from "../components/Cover";
-import { renderMathMLToImage } from "@/helpers/mathRenderer";
+import { renderMathMLClient } from "@/helpers/mathjaxToSvgClient";
 export type sectionType = { title: string; content: string | React.ReactNode };
 export type registerSectionType = (title: string, pageNumber: number, id: number, type: string) => void;
 export type tocEntry = { id: number; title: string; pageNumber: number; type: string };
@@ -83,17 +83,21 @@ const RenderPdf: React.FC<Props> = ({ meta, sections, setBlob }) => {
     [ready]
   );
 
-  const processedSections: sectionType[] = useMemo(
-    () =>
-      sections.map((section) => ({
-        title: section.title,
-        content:
-          typeof section.content === "string"
-            ? renderHtmlToPdfNodes(section.content, registerSection,false, renderMathMLToImage)
-            : section.content,
-      })),
-    [registerSection, sections]
-  );
+  const [processedSections, setProcessedSections] = useState<sectionType[]>([]);
+
+  useEffect(() => {
+    const processSections = async () => {
+      const resolvedSections = await Promise.all(
+        sections.map(async (section) => ({
+          title: section.title,
+          content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLClient),
+        }))
+      );
+      setProcessedSections(resolvedSections);
+    };
+
+    processSections();
+  }, [registerSection, sections]);
 
   const memoizedDocument = useMemo(
     () => (

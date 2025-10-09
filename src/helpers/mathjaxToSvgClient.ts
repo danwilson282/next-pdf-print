@@ -20,26 +20,34 @@ const html = mathjax.document('', {
 /**
  * Convert MathML to SVG string using MathJax
  */
-export async function renderMathMLClient(mathml: string): Promise<Blob | string>{
+export async function renderMathMLClient(mathml: string): Promise<{
+  base64: Blob;
+  width: number;
+  height: number;
+}> {
   const node = html.convert(mathml, { display: true });
   const svgString = adaptor.outerHTML(node);
   const match = svgString.match(/<svg[^>]*>[\s\S]*?<\/svg>/);
   const pureSvg = match ? match[0] : '';
-  const png = await svgStringToPng(pureSvg);
-  return png;
 
+  const { blob, width, height } = await svgStringToPng(pureSvg);
+  return { base64:blob, width, height };
 }
 
-async function svgStringToPng(svgString: string): Promise<Blob> {
-  // Parse SVG string into a DOM to extract width/height
+async function svgStringToPng(svgString: string): Promise<{
+  blob: Blob;
+  width: number;
+  height: number;
+}> {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svgString, "image/svg+xml");
   const svgElement = doc.documentElement;
 
-  // Try getting width and height from <svg> attributes
-  let width = parseFloat(svgElement.getAttribute("width") || "")*8;
-  let height = parseFloat(svgElement.getAttribute("height") || "")*8;
-  // Fallback: calculate from viewBox
+  // Get width and height
+  let width = parseFloat(svgElement.getAttribute("width") || "") * 8;
+  let height = parseFloat(svgElement.getAttribute("height") || "") * 8;
+
+  // Fallback to viewBox
   if (isNaN(width) || isNaN(height)) {
     const viewBox = svgElement.getAttribute("viewBox");
     if (viewBox) {
@@ -66,19 +74,19 @@ async function svgStringToPng(svgString: string): Promise<Blob> {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject("No canvas context");
+
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject("Failed to create PNG blob");
-        },
-        "image/png",
-        1.0
-      );
+
+      canvas.toBlob((blob) => {
+        if (blob) resolve({ blob, width, height });
+        else reject("Failed to create PNG blob");
+      }, "image/png", 1.0);
     };
+
     img.onerror = (e) => reject(e);
     img.src = url;
   });
 }
+
 
