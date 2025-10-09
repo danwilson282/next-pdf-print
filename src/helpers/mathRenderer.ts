@@ -3,6 +3,8 @@ export async function renderMathMLToImage(mathml: string): Promise<{
     width: number;
     height: number;
   }> {
+     const { renderMathMLServer } = await import('./mathjaxToSvgServer');
+      return renderMathMLServer(mathml);
     const isServer = typeof window === 'undefined';
     if (isServer) {
       // const { renderMathMLServer } = await import('./mathjaxToSvgServer');

@@ -39,7 +39,7 @@ const Home: React.FC = () => {
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <h1>React PDF with TOC</h1>
       {pngUrl && <img src={pngUrl} alt="Uploaded PNG" />}
-      <ServePdf
+      {/* <ServePdf
       sections={[
         { title: "Introduction", content: intro },
         { title: "Specification at a glance", content: specAtAGlance },
@@ -50,7 +50,7 @@ const Home: React.FC = () => {
       
     ]}
       meta={documentMetadata}
-      ></ServePdf>
+      ></ServePdf> */}
     </div>
   );
 };
