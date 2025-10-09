@@ -41,7 +41,6 @@ async function renderNode(
   node: any,
   keyPrefix = "",
   registerSection: registerSectionType,
-  useServer: boolean,
   mathRenderer: (mathml: string)=> Promise<{
     base64: string | Blob;
     width: number;
@@ -61,7 +60,7 @@ async function renderNode(
 
     const childNodes = await Promise.all(
       (node.children || []).map((c: any, i: number) =>
-        renderNode(c, `${keyPrefix}_${tag}_${i}`, registerSection,useServer,mathRenderer)
+        renderNode(c, `${keyPrefix}_${tag}_${i}`, registerSection,mathRenderer)
       )
     );
     const children = childNodes.filter(Boolean);
@@ -134,7 +133,7 @@ async function renderNode(
           (node.children || []).filter((c: any) => c.name === "li").map(async (li: any, idx: number) => {
             const liChildren = await Promise.all(
               (li.children || []).map((c: any, i: number) =>
-                renderNode(c, `${keyPrefix}_li_${idx}_${i}`, registerSection,useServer,mathRenderer)
+                renderNode(c, `${keyPrefix}_li_${idx}_${i}`, registerSection,mathRenderer)
               )
             );
             const bullet = isOrdered ? `${idx + 1}. ` : "• ";
@@ -194,7 +193,7 @@ async function renderNode(
                       cells.map(async (cell: any, cIdx: number) => {
                         const cellChildren = await Promise.all(
                           (cell.children || []).map((c: any, i: number) =>
-                            renderNode(c, `${keyPrefix}_tr${rIdx}_c${cIdx}_${i}`, registerSection, useServer,mathRenderer)
+                            renderNode(c, `${keyPrefix}_tr${rIdx}_c${cIdx}_${i}`, registerSection,mathRenderer)
                           )
                         );
                         const isHeader = cell.name === "th";
@@ -266,7 +265,6 @@ async function renderNode(
 export async function renderHtmlToPdfNodes(
   html: string,
   registerSection: registerSectionType,
-  useServer: boolean = false,
   mathRenderer: (mathml: string)=> Promise<{
     base64: string | Blob;
     width: number;
@@ -275,7 +273,7 @@ export async function renderHtmlToPdfNodes(
 ): Promise<React.ReactNode[]> {
   const doc = parseDocument(html, { decodeEntities: true });
   const nodes = await Promise.all(
-    (doc.children || []).map((n: any, i: number) => renderNode(n, `root_${i}`, registerSection, useServer,mathRenderer))
+    (doc.children || []).map((n: any, i: number) => renderNode(n, `root_${i}`, registerSection,mathRenderer))
   );
   return nodes
   .filter(Boolean)
