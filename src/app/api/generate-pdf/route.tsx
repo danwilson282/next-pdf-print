@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
 
   const { meta, sections } = body;
 
-  const tocMap: any[] = [];
-  let tempMap: tocType = []
+  const tocMap: tocType = [];
+  const tempMap: tocType = []
 
 
 
@@ -34,7 +34,6 @@ export async function POST(req: NextRequest) {
         }
       
         // Sort updated TOC and update state
-        const sortedToc = [...tempMap].sort((a, b) => a.id - b.id);
         tocMap.push({ id, title, pageNumber, type });
   };
 
@@ -42,7 +41,7 @@ const processedSections = await Promise.all(
   sections.map(async (section: SectionInputType): Promise<SectionType> => (
     {
       title: section.title,
-      content: await renderHtmlToPdfNodes(section.content, registerSection, true, renderMathMLServer)
+      content: await renderHtmlToPdfNodes(section.content, registerSection, renderMathMLServer)
     }
   ))
 );
